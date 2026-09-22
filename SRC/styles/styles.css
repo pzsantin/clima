@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+*{
+    font-family: "DM Sans", sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    color: #f4f1eb;
+    background: #101820;
+    overflow-x: hidden;
+}
+
+#container {
+    --spotlight-x: 50%;
+    --spotlight-y: 50%;
+    --weather-start: #2479b5;
+    --weather-end: #55b6d0;
+    --weather-glow: rgba(224, 249, 255, .3);
+    --weather-accent: #effcff;
+    position: relative;
+    isolation: isolate;
+    width: min(440px, calc(100vw - 32px));
+    background: linear-gradient(145deg, color-mix(in srgb, var(--weather-start) 24%, #1a2730), #1a2730 72%);
+    border: 1px solid rgba(255, 255, 255, .13);
+    border-radius: 28px;
+    padding: 18px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .35);
+    overflow: hidden;
+}
+
+#container::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+    background: radial-gradient(260px circle at var(--spotlight-x) var(--spotlight-y), var(--weather-glow), transparent 70%);
+    transition: background .4s ease;
+}
+
+#search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: 14px;
+    padding: 7px 12px;
+    color: #f4f1eb;
+}
+    
+#search input {
+    border: none;
+    background-color: transparent;
+    color: #f4f1eb;
+    font-size: 16px;
+    width: 100%;
+}
+
+#search input:focus-visible {
+    outline: none;
+}
+
+#search input::placeholder { color: #a9b4b8; }
+
+#search button {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--weather-accent);
+    transition: color .5s ease;
+    font-size: 17px;
+}
+
+#clima {
+    display: none;
+    margin-top: 20px;
+}
+
+#clima.show {
+    display: block;
+}
+
+#clima #title {
+    text-align: center;
+    margin-bottom: 5px;
+    font-weight: 700;
+    color: #f4f1eb;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: clamp(28px, 7vw, 40px);
+}
+
+#temp {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 20px;
+    position: relative;
+    background: linear-gradient(135deg, var(--weather-start), var(--weather-end));
+    color: #fff;
+    border-radius: 22px;
+    padding: 22px 18px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 12px 30px color-mix(in srgb, var(--weather-start) 28%, transparent);
+    transition: background .7s ease, box-shadow .7s ease;
+}
+
+#temp_img {
+    filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+#temp_value {
+    font-weight: bold;
+    font-size: clamp(46px, 13vw, 68px);
+    line-height: 55px;
+}
+
+#temp_description {
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+#other_infos {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+#other_infos .info {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    padding: 12px 10px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 15px;
+    background-color: rgba(255, 255, 255, .06);
+
+
+}
+#other_infos .info h2 {
+    font-size: 12px;
+    font-weight: 600;
+
+}
+
+#other_infos .info i {
+    text-align: center;
+    font-size: 20px;
+    width: 20%;
+
+}
+
+#temp_max_icon {
+    color: #ff9c61;
+}
+
+#temp_min_icon {
+    color: #72c7d5;
+}
+
+#humidity_icon {
+    color: #62c9bb;
+}
+
+#wind_icon {
+    color: #d6a4ff;
+}
+
+#other_infos .info h2,
+#other_infos .info p { color: #f4f1eb; }
+
+#other_infos .info p { font-size: 18px; }
+
+@media (max-width: 390px) {
+    #container { padding: 14px; border-radius: 22px; }
+    #temp { gap: 8px; padding-inline: 10px; }
+}
+
+#alert{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#alert img {
+    width: 150px;
+    margin-top: 20px;
+}
