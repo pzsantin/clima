@@ -15,7 +15,11 @@
             type="search" 
             name="nome_da_cidade" 
             id="nome_da_cidade" 
-            placeholder="Buscar cidade">
+            placeholder="Buscar cidade"
+            autocomplete="off"
+            list="localidades">
+
+            <datalist id="localidades"></datalist>
 
             <button type="submit" aria-label="Buscar cidade">
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>

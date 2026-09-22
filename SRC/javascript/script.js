@@ -1,4 +1,81 @@
 const container = document.querySelector('#container');
+const searchInput = document.querySelector('#nome_da_cidade');
+const locationsList = document.querySelector('#localidades');
+const apiKey = 'f10d4b19e8f434afb522dc5b728ab06a';
+let suggestionTimer;
+let suggestionRequest;
+
+const brazilianStates = {
+    'acre': 'Rio Branco',
+    'alagoas': 'Maceió',
+    'amapá': 'Macapá',
+    'amazonas': 'Manaus',
+    'bahia': 'Salvador',
+    'ceará': 'Fortaleza',
+    'distrito federal': 'Brasília',
+    'espírito santo': 'Vitória',
+    'goiás': 'Goiânia',
+    'maranhão': 'São Luís',
+    'mato grosso': 'Cuiabá',
+    'mato grosso do sul': 'Campo Grande',
+    'minas gerais': 'Belo Horizonte',
+    'pará': 'Belém',
+    'paraíba': 'João Pessoa',
+    'paraná': 'Curitiba',
+    'pernambuco': 'Recife',
+    'piauí': 'Teresina',
+    'rio de janeiro': 'Rio de Janeiro',
+    'rio grande do norte': 'Natal',
+    'rio grande do sul': 'Porto Alegre',
+    'rondônia': 'Porto Velho',
+    'roraima': 'Boa Vista',
+    'santa catarina': 'Florianópolis',
+    'são paulo': 'São Paulo',
+    'sergipe': 'Aracaju',
+    'tocantins': 'Palmas',
+};
+
+const stateCodes = {
+    'Acre': 'AC',
+    'Alagoas': 'AL',
+    'Amapá': 'AP',
+    'Amazonas': 'AM',
+    'Bahia': 'BA',
+    'Ceará': 'CE',
+    'Distrito Federal': 'DF',
+    'Espírito Santo': 'ES',
+    'Goiás': 'GO',
+    'Maranhão': 'MA',
+    'Mato Grosso': 'MT',
+    'Mato Grosso do Sul': 'MS',
+    'Minas Gerais': 'MG',
+    'Pará': 'PA',
+    'Paraíba': 'PB',
+    'Paraná': 'PR',
+    'Pernambuco': 'PE',
+    'Piauí': 'PI',
+    'Rio de Janeiro': 'RJ',
+    'Rio Grande do Norte': 'RN',
+    'Rio Grande do Sul': 'RS',
+    'Rondônia': 'RO',
+    'Roraima': 'RR',
+    'Santa Catarina': 'SC',
+    'São Paulo': 'SP',
+    'Sergipe': 'SE',
+    'Tocantins': 'TO',
+};
+
+searchInput.addEventListener('input', () => {
+    clearTimeout(suggestionTimer);
+    const query = searchInput.value.trim();
+
+    if (query.length < 2) {
+        locationsList.replaceChildren();
+        return;
+    }
+
+    suggestionTimer = setTimeout(() => loadSuggestions(query), 300);
+});
 
 container.addEventListener('pointermove', (event) => {
     const bounds = container.getBoundingClientRect();
@@ -9,7 +86,7 @@ container.addEventListener('pointermove', (event) => {
 document.querySelector('#search').addEventListener('submit', async (Event)=>{
     Event.preventDefault();
 
-    const nome_da_cidade = document.querySelector('#nome_da_cidade').value;
+    const nome_da_cidade = searchInput.value.trim();
 
     if (!nome_da_cidade){
         document.querySelector("#clima").classList.remove('show');
@@ -17,18 +94,19 @@ document.querySelector('#search').addEventListener('submit', async (Event)=>{
         return;
     }
 
-    const apiKey = 'f10d4b19e8f434afb522dc5b728ab06a';
-    const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURI(nome_da_cidade)}&appid=${apiKey}&units=metric&lang=pt_br`
-
     try {
+        const location = await findLocation(nome_da_cidade);
+        const apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${location.lat}&lon=${location.lon}&appid=${apiKey}&units=metric&lang=pt_br`;
         const results = await fetch(apiUrl);
         const json = await results.json();
 
         if (json.cod === 200) {
             const extremes = await getDayExtremes(json, apiKey);
             showinfo({
-                city: json.name,
-                country: json.sys.country,
+                city: location.name || json.name,
+                state: location.state,
+                country: location.country || json.sys.country,
+                isState: location.isStateSearch,
                 temp: json.main.temp,
                 tempMax: extremes.max,
                 tempMin: extremes.min,
@@ -92,6 +170,57 @@ async function getDayExtremes(currentWeather, apiKey) {
     };
 }
 
+async function findLocation(query) {
+    const stateKey = query.toLocaleLowerCase('pt-BR');
+    const stateCapital = brazilianStates[stateKey];
+    const searchQuery = stateCapital || query;
+    const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchQuery)}&limit=1&appid=${apiKey}`);
+    const locations = await response.json();
+
+    if (!response.ok || !locations.length) {
+        throw new Error('localidade não encontrada');
+    }
+
+    if (stateCapital) {
+        return {
+            ...locations[0],
+            name: query,
+            state: null,
+            isStateSearch: true,
+        };
+    }
+
+    return locations[0];
+}
+
+async function loadSuggestions(query) {
+    if (suggestionRequest) suggestionRequest.abort();
+    suggestionRequest = new AbortController();
+
+    try {
+        const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${apiKey}`, {
+            signal: suggestionRequest.signal,
+        });
+        const locations = await response.json();
+        locationsList.replaceChildren(...locations.map((location) => {
+            const option = document.createElement('option');
+            option.value = formatLocation(location, true);
+            return option;
+        }));
+    } catch (error) {
+        if (error.name !== 'AbortError') locationsList.replaceChildren();
+    }
+}
+
+function formatLocation(location, includeCountry = false, abbreviateState = false) {
+    const parts = [location.name];
+    if (location.state) {
+        parts.push(abbreviateState ? stateCodes[location.state] || location.state : location.state);
+    }
+    if (includeCountry && location.country) parts.push(location.country);
+    return parts.filter(Boolean).join(', ');
+}
+
 function getWeatherPresentation(currentWeather, nearTermForecast) {
     const current = currentWeather.weather[0];
     const next = nearTermForecast?.weather?.[0];
@@ -119,7 +248,11 @@ function showinfo(Json){
     document.querySelector("#clima").classList.add('show');
     applyWeatherTheme(Json);
 
-    document.querySelector('#title').innerHTML = `${Json.city}, ${Json.country}`;
+    document.querySelector('#title').innerHTML = formatLocation({
+        name: Json.city,
+        state: Json.state,
+        country: Json.country,
+    }, Json.isState, !Json.isState);
 
     document.querySelector('#temp_value').innerHTML = `${Json.temp.toFixed(0)}°C`;
     document.querySelector('#temp_description').innerHTML = `${Json.description}`;
